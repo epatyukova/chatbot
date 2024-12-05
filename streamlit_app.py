@@ -1,4 +1,5 @@
 import streamlit as st
+from io import StringIO
 from openai import OpenAI
 from pymatgen.core.structure import Structure
 
@@ -23,11 +24,14 @@ structure_file = st.file_uploader("Upload the structure file", type=("cif"))
 
 if not openai_api_key:
     st.info("Please add your OpenAI API key to continue.", icon="🗝️")
-    if not structure_file:
-        st.info("Please add your structure file to continue")
-else:
+if not structure_file:
+    st.info("Please add your structure file to continue")
+if openai_api_key and structure_file:
+    stringio = StringIO(structure_file.getvalue().decode("utf-8"))
+    st.write(stringio)
     # Create an OpenAI client.
     client = OpenAI(api_key=openai_api_key)
+    # structure=Structure.from_file(structure_file)
 
     # Create a session state variable to store the chat messages. This ensures that the
     # messages persist across reruns.

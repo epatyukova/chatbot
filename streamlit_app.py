@@ -2,6 +2,7 @@ import streamlit as st
 from io import StringIO
 from openai import OpenAI
 from pymatgen.core.structure import Structure
+import os
 
 # Show title and description.
 st.title("💬 Chatbot for QE input")
@@ -15,11 +16,9 @@ st.write(
     "The Chatbot will generate an input file for QE single point scf calculations. And pseudo potential files from SSSP PBEsol efficiency library."
 )
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
+# read OpenAI key
 openai_api_key = st.text_input("OpenAI API Key", type="password")
-
+# upload structure file into buffer
 structure_file = st.file_uploader("Upload the structure file", type=("cif"))
 
 if not openai_api_key:
@@ -27,8 +26,35 @@ if not openai_api_key:
 if not structure_file:
     st.info("Please add your structure file to continue")
 if openai_api_key and structure_file:
-    stringio = StringIO(structure_file.getvalue().decode("utf-8"))
-    st.write(stringio)
+    # create a local copy of structure file in the container
+    save_directory = "./temp"
+        ## Do we need to save files to the local SQL database?
+        ## Or we need to delete temp folder after download? 
+        ## What if user wants to press the download button again?
+        ## What happens if several users accessing app simultaniously?
+    if not os.path.exists(save_directory):
+        os.makedirs(save_directory)
+    file_name = structure_file.name
+    file_path = os.path.join(save_directory, file_name)
+    
+    with open(file_path, "wb") as f:
+        f.write(structure_file.getbuffer())
+
+    structure = Structure.from_file(file_path)
+    
+
+
+    st.write(structure.formula)
+    # stringio = StringIO(structure_file.getvalue())
+    # st.write(stringio)
+    
+    st.download_button(
+        label="Download the files",
+        data=open(file_path, "rb").read(),
+        file_name=file_name,
+        mime="application/octet-stream"
+    )
+    
     # Create an OpenAI client.
     client = OpenAI(api_key=openai_api_key)
     # structure=Structure.from_file(structure_file)
